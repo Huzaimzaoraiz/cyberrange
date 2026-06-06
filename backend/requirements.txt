@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+docker
+bcrypt
+python-multipart
+pydantic-settings
+motor
+pymongo
