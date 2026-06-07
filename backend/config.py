@@ -34,10 +34,17 @@ ADMIN_ID = os.environ.get("ADMIN_ID") or os.environ.get("ADMIN_USERNAME") or "ad
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") or os.environ.get("ADMIN_PASS") or "ChangeMe123!"
 
 # how long a login token lasts (in s)
-TOKEN_EXPIRY_SECONDS = 24 * 60 * 60  # 24 hours
+TOKEN_EXPIRY_SECONDS = int(os.environ.get("CR_TOKEN_EXPIRY_SECONDS", str(24 * 60 * 60)))  # 24 hours
 
 # how long a lab can run before auto-cleanup (in s)
-LAB_MAX_AGE_SECONDS = 2 * 60 * 60  # 2 hours
+LAB_MAX_AGE_SECONDS = int(os.environ.get("CR_LAB_MAX_AGE_SECONDS", str(2 * 60 * 60)))  # 2 hours
+LAB_CLEANUP_INTERVAL_SECONDS = int(os.environ.get("CR_LAB_CLEANUP_INTERVAL_SECONDS", "60"))
+
+# login brute-force protection
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("CR_LOGIN_RATE_LIMIT_WINDOW_SECONDS", "900"))
+LOGIN_RATE_LIMIT_MAX_FAILURES = int(os.environ.get("CR_LOGIN_RATE_LIMIT_MAX_FAILURES", "5"))
+LOGIN_RATE_LIMIT_BASE_DELAY_SECONDS = int(os.environ.get("CR_LOGIN_RATE_LIMIT_BASE_DELAY_SECONDS", "2"))
+LOGIN_RATE_LIMIT_MAX_DELAY_SECONDS = int(os.environ.get("CR_LOGIN_RATE_LIMIT_MAX_DELAY_SECONDS", "60"))
 
 # container resource limits
 CONTAINER_MEMORY_LIMIT = "256m"
@@ -57,6 +64,11 @@ class _Settings:
     admin_password = ADMIN_PASSWORD
     token_expiry_seconds = TOKEN_EXPIRY_SECONDS
     lab_max_age_seconds = LAB_MAX_AGE_SECONDS
+    lab_cleanup_interval_seconds = LAB_CLEANUP_INTERVAL_SECONDS
+    login_rate_limit_window_seconds = LOGIN_RATE_LIMIT_WINDOW_SECONDS
+    login_rate_limit_max_failures = LOGIN_RATE_LIMIT_MAX_FAILURES
+    login_rate_limit_base_delay_seconds = LOGIN_RATE_LIMIT_BASE_DELAY_SECONDS
+    login_rate_limit_max_delay_seconds = LOGIN_RATE_LIMIT_MAX_DELAY_SECONDS
     container_memory_limit = CONTAINER_MEMORY_LIMIT
     container_cpu_period = CONTAINER_CPU_PERIOD
     container_cpu_quota = CONTAINER_CPU_QUOTA

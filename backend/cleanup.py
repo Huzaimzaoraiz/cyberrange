@@ -22,4 +22,4 @@ async def cleanup_old_labs():
         except Exception as e:
             logger.error("cleanup error: %s", e)
 
-        await asyncio.sleep(300)
+        await asyncio.sleep(settings.lab_cleanup_interval_seconds)

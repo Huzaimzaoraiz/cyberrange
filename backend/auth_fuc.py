@@ -20,18 +20,18 @@ def check_password(password, password_hash):
     return bcrypt.checkpw(password.encode(), password_hash.encode())
 
 
-def create_token(user_id):
+def create_token(user_id, session_id):
     """
     create a login token for a user
 
-    token format: base64( user_id : timestamp : signature )
-    signature = HMAC-SHA256( secret, user_id + timestamp )
+    token format: base64( user_id : timestamp : session_id : signature )
+    signature = HMAC-SHA256( secret, user_id + timestamp + session_id )
     """
     timestamp = str(int(time.time()))
     user_id_str = str(user_id)
 
     # create the signature
-    message = user_id_str + ":" + timestamp
+    message = user_id_str + ":" + timestamp + ":" + session_id
     signature = hmac.new(
         settings.secret_key.encode(),
         message.encode(),
@@ -39,14 +39,14 @@ def create_token(user_id):
     ).hexdigest()
 
     # combine everything and encode
-    token_data = user_id_str + ":" + timestamp + ":" + signature
+    token_data = user_id_str + ":" + timestamp + ":" + session_id + ":" + signature
     token = base64.b64encode(token_data.encode()).decode()
     return token
 
 
-def verify_token(token):
+def verify_token_details(token):
     """
-    verify a login token and return the user_id
+    verify a login token and return user/session details
     returns None if token is invalid or expired
     """
     try:
@@ -54,12 +54,13 @@ def verify_token(token):
         token_data = base64.b64decode(token.encode()).decode()
         parts = token_data.split(":")
 
-        if len(parts) != 3:
+        if len(parts) != 4:
             return None
 
         user_id_str = parts[0]
         timestamp = parts[1]
-        signature = parts[2]
+        session_id = parts[2]
+        signature = parts[3]
 
         # check if token is expired
         token_time = int(timestamp)
@@ -68,7 +69,7 @@ def verify_token(token):
             return None
 
         # verify the signature
-        message = user_id_str + ":" + timestamp
+        message = user_id_str + ":" + timestamp + ":" + session_id
         expected_signature = hmac.new(
             settings.secret_key.encode(),
             message.encode(),
@@ -78,7 +79,18 @@ def verify_token(token):
         if not hmac.compare_digest(signature, expected_signature):
             return None
 
-        return int(user_id_str)
+        return {"user_id": int(user_id_str), "session_id": session_id}
 
     except Exception:
         return None
+
+
+def verify_token(token):
+    """
+    verify a login token and return the user_id
+    returns None if token is invalid or expired
+    """
+    details = verify_token_details(token)
+    if not details:
+        return None
+    return details["user_id"]

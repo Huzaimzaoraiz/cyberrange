@@ -11,11 +11,6 @@ export default function Scoreboard() {
   const load = useCallback(async () => {
     const data = await api.get("/scoreboard/portal");
     const scoreRows = Array.isArray(data.scoreboard) ? [...data.scoreboard] : [];
-    scoreRows.sort((a, b) => {
-      const scoreDiff = Number(b.net_score ?? b.total_points ?? 0) - Number(a.net_score ?? a.total_points ?? 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      return String(a.username || "").localeCompare(String(b.username || ""));
-    });
 
     setRows(
       scoreRows.map((row, index) => ({

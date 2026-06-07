@@ -4,6 +4,16 @@ import { api } from "../api";
 
 const SCOREBOARD_REFRESH_EVENT = "scoreboard:refresh";
 
+function formatRemainingTime(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const secs = safeSeconds % 60;
+  return [hours, minutes, secs]
+    .map((part) => String(part).padStart(2, "0"))
+    .join(":");
+}
+
 export default function Lab() {
   const { challengeId } = useParams();
   const [challenge, setChallenge] = useState(null);
@@ -32,6 +42,27 @@ export default function Lab() {
       fetchStatus(),
     ]).finally(() => setLoading(false));
   }, [challengeId, fetchStatus]);
+
+  useEffect(() => {
+    if (!status?.running || status.remaining_seconds == null) return undefined;
+
+    const timer = window.setInterval(() => {
+      setStatus((current) => {
+        if (!current?.running || current.remaining_seconds == null) return current;
+        const nextRemaining = Math.max(0, Number(current.remaining_seconds) - 1);
+        if (nextRemaining === current.remaining_seconds) return current;
+        return { ...current, remaining_seconds: nextRemaining };
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [status?.running]);
+
+  useEffect(() => {
+    if (status?.running && status.remaining_seconds === 0) {
+      fetchStatus();
+    }
+  }, [fetchStatus, status?.running, status?.remaining_seconds]);
 
   async function startLab() {
     setBusy(true);
@@ -133,6 +164,12 @@ export default function Lab() {
         {running && status?.instance_id && (
           <div className="lab-info">
             Lab Instance ID: <code>{status.instance_id}</code>
+          </div>
+        )}
+
+        {running && status?.remaining_seconds != null && (
+          <div className="lab-info lab-timer">
+            Auto stop in: <code>{formatRemainingTime(status.remaining_seconds)}</code>
           </div>
         )}
 

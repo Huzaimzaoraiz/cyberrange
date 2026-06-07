@@ -13,11 +13,12 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submitting) return;
     setError("");
     setSubmitting(true);
     try {
       const data = await api.post("/login", { username, password });
-      login(data.token, { user_id: data.user_id, username: data.username, role: data.role });
+      login({ user_id: data.user_id, username: data.username, role: data.role });
       navigate("/dashboard");
     } catch (err) {
       setError(err.detail || "Login failed");
