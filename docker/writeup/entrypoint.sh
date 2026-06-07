@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-printf '%s\n' "${FLAG:-flag{default}" > /root/root.txt
+printf '%s\n' "${FLAG:-flag{default}}" > /root/root.txt
 chmod 600 /root/root.txt
 printf 'CMS Made Simple user recovered. Keep going.\n' > /home/jkr/user.txt
 chown jkr:jkr /home/jkr/user.txt
