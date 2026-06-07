@@ -8,8 +8,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN for group in staff cdrom floppy audio dip video plugdev netdev; do getent group "$group" >/dev/null || groupadd "$group"; done \
-    && groupadd -g 1000 jkr \
-    && useradd -m -u 1000 -g jkr -G staff,cdrom,floppy,audio,dip,video,plugdev,netdev -s /bin/bash jkr \
+    && groupadd jkr \
+    && useradd -m -g jkr -G staff,cdrom,floppy,audio,dip,video,plugdev,netdev -s /bin/bash jkr \
     && echo 'jkr:raykayjay9' | chpasswd \
     && mkdir -p /run/sshd /var/www/writeup \
     && chgrp staff /usr/local /usr/local/bin \

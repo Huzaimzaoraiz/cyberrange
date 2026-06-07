@@ -66,9 +66,12 @@ async def submit_flag(req: FlagSubmitRequest, user: CurrentUser):
         target_user_id=user["id"],
     )
 
+    stop_result = orchestrator.destroy_lab(user["id"], req.challenge_id)
+    stop_message = " Lab stopped." if stop_result.get("success") else ""
+
     return {
         "correct": True,
-        "message": f"correct flag submitted! +{points} points applied on live scoreboard",
+        "message": f"correct flag submitted! +{points} points applied on live scoreboard.{stop_message}",
     }
 
 

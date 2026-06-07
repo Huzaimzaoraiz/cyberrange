@@ -1,6 +1,7 @@
 # orchestrator.py
 # Manages Docker containers for simplified-cyberrange using one private lab network
 
+import datetime
 import docker
 from docker.errors import NotFound
 from docker.types import IPAMConfig, IPAMPool
@@ -140,7 +141,7 @@ def create_lab(user_id, challenge_id):
         return {"error": "failed to start container: " + str(e)}
 
     # Save to database
-    database.create_instance(
+    instance = database.create_instance(
         user_id=user_id,
         challenge_id=challenge_id,
         instance_number=instance_number,
@@ -156,6 +157,7 @@ def create_lab(user_id, challenge_id):
         "lab_subnet": config.settings.lab_subnet,
         "target_ip": target_ip,
         "containers": [target_ip],
+        "expires_at": instance.get("expires_at") if instance else None,
     }
 
 def destroy_lab(user_id, challenge_id):
@@ -215,6 +217,13 @@ def get_lab_status(user_id, challenge_id):
     if not instance:
         return {"running": False}
 
+    expires_at = instance.get("expires_at")
+    now = datetime.datetime.utcnow()
+    if expires_at and expires_at <= now:
+        result = destroy_lab(user_id, challenge_id)
+        if result.get("success"):
+            return {"running": False, "expired": True}
+
     all_running = True
     try:
         docker_client = get_docker_client()
@@ -222,13 +231,18 @@ def get_lab_status(user_id, challenge_id):
         all_running = False
         docker_client = None
 
-    for container_id in instance.get("container_ids") or []:
-        try:
-            container = docker_client.containers.get(container_id)
-            if container.status != "running":
+    if docker_client:
+        for container_id in instance.get("container_ids") or []:
+            try:
+                container = docker_client.containers.get(container_id)
+                if container.status != "running":
+                    all_running = False
+            except Exception:
                 all_running = False
-        except:
-            all_running = False
+
+    remaining_seconds = None
+    if expires_at:
+        remaining_seconds = max(0, int((expires_at - now).total_seconds()))
 
     return {
         "running": True,
@@ -237,5 +251,7 @@ def get_lab_status(user_id, challenge_id):
         "lab_subnet": instance.get("lab_subnet") or config.settings.lab_subnet,
         "target_ip": instance.get("target_ip"),
         "instance_number": instance["instance_number"],
-        "created_at": instance["created_at"]
+        "created_at": instance["created_at"],
+        "expires_at": expires_at,
+        "remaining_seconds": remaining_seconds,
     }

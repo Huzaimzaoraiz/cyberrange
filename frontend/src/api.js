@@ -1,15 +1,13 @@
 const API = "/api";
 
 function getHeaders() {
-  const headers = { "Content-Type": "application/json" };
-  const token = localStorage.getItem("token");
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
+  return { "Content-Type": "application/json" };
 }
 
 async function request(endpoint, options = {}) {
   const res = await fetch(`${API}${endpoint}`, {
     ...options,
+    credentials: "include",
     headers: { ...getHeaders(), ...options.headers },
   });
 
@@ -18,7 +16,8 @@ async function request(endpoint, options = {}) {
     return res;
   }
 
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json") ? await res.json() : {};
   if (!res.ok) throw { status: res.status, ...data };
   return data;
 }
