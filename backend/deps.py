@@ -3,7 +3,7 @@
 
 from typing import Annotated
 from fastapi import Depends, Cookie, HTTPException
-import auth_fuc as auth_module
+import auth_fuc as auth_module  
 import database
 
 async def get_current_user(cyberrange_auth: str = Cookie(None)):
