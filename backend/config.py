@@ -53,7 +53,7 @@ CONTAINER_CPU_QUOTA = 50000  # 50% of one core
 
 # Docker lab network
 DOCKER_NETWORK_NAME = os.environ.get("CR_DOCKER_NETWORK_NAME", "cyberrange_labs")
-LAB_SUBNET = os.environ.get("CR_LAB_SUBNET", "172.30.0.0/16")
+LAB_SUBNET = os.environ.get("CR_LAB_SUBNET", "10.0.0.0/16")
 
 class _Settings:
     secret_key = SECRET_KEY
