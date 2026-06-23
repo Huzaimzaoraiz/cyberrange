@@ -26,24 +26,24 @@ function verifyTokenDetails(token) {
 async function requireAuth(req, res, next) {
   const token = req.cookies?.cyberrange_auth;
   if (!token) {
-    return res.status(401).json({ detail: 'Authentication required (missing session cookie)' });
+    return res.status(401).json({ error: 'Authentication required (missing session cookie)' });
   }
 
   const payload = verifyTokenDetails(token);
   if (!payload) {
-    return res.status(401).json({ detail: 'Invalid or expired session token' });
+    return res.status(401).json({ error: 'Invalid or expired session token' });
   }
 
   const { user_id, session_id } = payload;
 
   const isActive = await database.isActiveSession(user_id, session_id);
   if (!isActive) {
-    return res.status(401).json({ detail: 'Session was replaced by a newer login' });
+    return res.status(401).json({ error: 'Session was replaced by a newer login' });
   }
 
   const user = await database.getUserById(user_id);
   if (!user) {
-    return res.status(401).json({ detail: 'User not found' });
+    return res.status(401).json({ error: 'User not found' });
   }
 
   req.user = user;
@@ -55,7 +55,7 @@ async function requireAdmin(req, res, next) {
   // requireAuth must run first
   await requireAuth(req, res, () => {
     if (req.user && req.user.role !== 'admin') {
-      return res.status(403).json({ detail: 'Admin access required' });
+      return res.status(403).json({ error: 'Admin access required' });
     }
     next();
   });

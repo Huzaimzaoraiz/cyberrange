@@ -51,7 +51,7 @@ function getContainerIp(containerInfo, networkName) {
 function instanceNumberFromIp(ipAddress) {
   if (!ipAddress) return 0;
   const parts = ipAddress.split('.');
-  return parseInt(parts[parts.length - 2], 10) * 256 + parseInt(parts[parts.length - 1], 10);
+  return Number(parts[parts.length - 2]) * 256 + Number(parts[parts.length - 1]);
 }
 
 async function removeStaleContainer(name) {
@@ -162,7 +162,7 @@ async function createLab(userId, challengeId) {
       throw new Error('container started but did not receive an IP on ' + networkName);
     }
 
-    const targetIp = parseInt(internalPort, 10) === 80 ? containerIp : `${containerIp}:${internalPort}`;
+    const targetIp = Number(internalPort) === 80 ? containerIp : `${containerIp}:${internalPort}`;
     const instanceNum = instanceNumberFromIp(containerIp);
     console.log(`started container: ${containerName} on ${networkName} at ${targetIp}`);
 
@@ -194,7 +194,7 @@ function parseMemoryLimit(limit) {
   if (typeof limit === 'number') return limit;
   const match = String(limit).match(/^(\d+)([kmg]?)$/i);
   if (!match) return 256 * 1024 * 1024;
-  const num = parseInt(match[1], 10);
+  const num = Number(match[1]);
   const unit = (match[2] || '').toLowerCase();
   if (unit === 'g') return num * 1024 * 1024 * 1024;
   if (unit === 'm') return num * 1024 * 1024;
