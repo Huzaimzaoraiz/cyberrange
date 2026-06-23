@@ -1,6 +1,3 @@
-// orchestrator.js
-// Manages Docker containers for simplified-cyberrange using one private lab network
-
 const Docker = require('dockerode');
 const database = require('./database');
 const flagEngine = require('./flagEngine');
@@ -12,7 +9,6 @@ function get_docker_client() {
   if (!docker) {
     docker = new Docker();
   }
-  // We'll validate connectivity on each call that needs it
   return docker;
 }
 
@@ -23,13 +19,11 @@ async function pingDocker() {
     return client;
   } catch (e) {
     docker = null;
-    throw new Error(
-      'Docker is not reachable. try again.'
-    );
+    throw new Error(`Docker is not reachable. (${e.message})`);
   }
 }
 
-async function getLabNetwork() {
+async function getNetwork_for_Lab() {
   const client = await pingDocker();
   const networkName = settings.dockerNetworkName;
   try {
@@ -128,7 +122,7 @@ async function createLab(userId, challengeId) {
 
   try {
     const client = await pingDocker();
-    const network = await getLabNetwork();
+    const network = await getNetwork_for_Lab();
 
     // Get network name (might be a Network object or have Name/id)
     let networkName = settings.dockerNetworkName;
@@ -199,7 +193,7 @@ async function createLab(userId, challengeId) {
 function parseMemoryLimit(limit) {
   if (typeof limit === 'number') return limit;
   const match = String(limit).match(/^(\d+)([kmg]?)$/i);
-  if (!match) return 256 * 1024 * 1024; // default 256m
+  if (!match) return 256 * 1024 * 1024;
   const num = parseInt(match[1], 10);
   const unit = (match[2] || '').toLowerCase();
   if (unit === 'g') return num * 1024 * 1024 * 1024;

@@ -1,6 +1,3 @@
-// routes/auth.js
-// Authentication routes: login, logout, me
-
 const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
@@ -30,7 +27,18 @@ router.post('/login', async (req, res) => {
     }
 
     const user = await database.getUserByUsername(username);
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+
+    // response time normalizatioon 
+    const dummyHash = '$2b$10$1yqR./W7LgQ62f/N61i/yO1HkQ6Kj3Z4jX9Hk8Z2MvQ6H5vM3q6e';
+    let Match = false;
+
+    if (user) {
+      Match = await bcrypt.compare(password, user.password_hash);
+    } else {
+      await bcrypt.compare(password, dummyHash);
+    }
+
+    if (!user || !Match) {
       const delay = await database.recordLoginFailure(username, clientHost);
       await sleep(Math.min(2000, delay > 0 ? delay * 1000 : 1000));
       if (delay > 0) {
