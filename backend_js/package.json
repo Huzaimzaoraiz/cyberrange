@@ -1,7 +1,7 @@
 {
-  "name": "simplified-cyberrange-backend",
+  "name": "cyberrange",
   "version": "1.0.0",
-  "description": "Express backend for simplified cyberrange",
+  "description": "Express backend for cyberrange",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",

@@ -115,7 +115,7 @@ async function createLab(userId, challengeId) {
 
   // Generate user/challenge specific flag
   const flag = flagEngine.generateFlag(userId, challengeId);
-  const containerName = `lab_u${userId}_${challengeId}`;
+  const containerName = `lab_name${userId}_challenge_id${challengeId}`;
 
   // Remove any duplicate containers
   await removeStaleContainer(containerName);
