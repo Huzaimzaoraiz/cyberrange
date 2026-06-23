@@ -12,7 +12,16 @@ function generateFlag(userId, challengeId) {
 
 function validateFlag(userId, challengeId, submittedFlag) {
   const correctFlag = generateFlag(userId, challengeId);
-  return submittedFlag.trim() === correctFlag;
+  const submitted = submittedFlag.trim();
+  
+  if (correctFlag.length !== submitted.length) {
+    return false;
+  }
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(correctFlag, 'utf8'),
+    Buffer.from(submitted, 'utf8')
+  );
 }
 
 module.exports = { generateFlag, validateFlag };

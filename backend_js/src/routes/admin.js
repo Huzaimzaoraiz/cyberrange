@@ -272,7 +272,7 @@ router.delete('/admin/users/:userId', requireAdmin, async (req, res) => {
     }
 
     if (targetUser.role === 'admin' && (await database.countAdminUsers()) <= 1) {
-      return res.status(400).json({ detail: 'cannot delete the last admin account' });
+      return res.status(400).json({ detail: 'cannot delete the last admin' });
     }
 
     const runningInstances = await database.getRunningInstancesByUser(userId);

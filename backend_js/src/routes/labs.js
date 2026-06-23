@@ -1,6 +1,3 @@
-// routes/labs.js
-// Lab management routes: start, stop, status
-
 const express = require('express');
 const router = express.Router();
 const orchestrator = require('../orchestrator');

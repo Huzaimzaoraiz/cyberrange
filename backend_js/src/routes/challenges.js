@@ -1,6 +1,3 @@
-// routes/challenges.js
-// Challenge listing route
-
 const express = require('express');
 const router = express.Router();
 const database = require('../database');
