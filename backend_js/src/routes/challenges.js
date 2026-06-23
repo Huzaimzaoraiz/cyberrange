@@ -13,7 +13,7 @@ router.get('/challenges', requireAuth, async (req, res) => {
     return res.json({ challenges });
   } catch (err) {
     console.error('list challenges error:', err);
-    return res.status(500).json({ detail: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 

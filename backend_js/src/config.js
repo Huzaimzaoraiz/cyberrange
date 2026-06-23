@@ -1,5 +1,3 @@
-// config.js
-// All settings for our simplified cyber range
 
 const fs = require('fs');
 const dotenv = require('dotenv');
@@ -38,7 +36,6 @@ const settings = {
   loginRateLimitBaseDelaySeconds: parseInt(process.env.CR_LOGIN_RATE_LIMIT_BASE_DELAY_SECONDS || '2', 10),
   loginRateLimitMaxDelaySeconds: parseInt(process.env.CR_LOGIN_RATE_LIMIT_MAX_DELAY_SECONDS || '60', 10),
 
-  // container resource limits
   containerMemoryLimit: '256m',
   containerCpuPeriod: 100000,
   containerCpuQuota: 50000, // 50% of one core

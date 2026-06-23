@@ -1,5 +1,3 @@
-// database.js
-// MongoDB database layer for simplified-cyberrange
 
 const settings = require('./config');
 
@@ -9,7 +7,6 @@ function setDb(mongoDb) {
   db = mongoDb;
 }
 
-// ---- auto-incrementing IDs ----
 
 async function getNextSequenceValue(sequenceName) {
   const result = await db.collection('counters').findOneAndUpdate(
@@ -20,7 +17,6 @@ async function getNextSequenceValue(sequenceName) {
   return result.sequence_value;
 }
 
-// ---- initialisation ----
 
 async function initDb(mongoDb) {
   db = mongoDb;
@@ -82,7 +78,6 @@ async function initDb(mongoDb) {
   }
 }
 
-// ---- user functions ----
 
 async function createUser(username, passwordHash, role = 'user') {
   const userId = await getNextSequenceValue('users');
@@ -107,7 +102,7 @@ async function getUserByUsername(username) {
 
 async function getUserById(userId) {
   if (userId == null) return null;
-  return db.collection('users').findOne({ id: parseInt(userId, 10) });
+  return db.collection('users').findOne({ id: Number(userId) });
 }
 
 async function getAllUsers() {
@@ -122,12 +117,12 @@ async function countAdminUsers() {
 
 async function getRunningInstancesByUser(userId) {
   return db.collection('instances')
-    .find({ user_id: parseInt(userId, 10), status: 'running' }, { projection: { id: 1 } })
+    .find({ user_id: Number(userId), status: 'running' }, { projection: { id: 1 } })
     .toArray();
 }
 
 async function deleteUserAndRelatedData(userId) {
-  userId = parseInt(userId, 10);
+  userId = Number(userId);
   await db.collection('submissions').deleteMany({
     $or: [{ user_id: userId }, { target_user_id: userId }],
   });
@@ -137,13 +132,13 @@ async function deleteUserAndRelatedData(userId) {
 
 async function setActiveSession(userId, sessionId) {
   await db.collection('users').updateOne(
-    { id: parseInt(userId, 10) },
+    { id: Number(userId) },
     { $set: { active_session_id: sessionId, active_session_started_at: new Date() } }
   );
 }
 
 async function clearActiveSession(userId, sessionId = null) {
-  const query = { id: parseInt(userId, 10) };
+  const query = { id: Number(userId) };
   if (sessionId !== null) query.active_session_id = sessionId;
   await db.collection('users').updateOne(
     query,
@@ -154,13 +149,12 @@ async function clearActiveSession(userId, sessionId = null) {
 async function isActiveSession(userId, sessionId) {
   if (!sessionId) return false;
   const doc = await db.collection('users').findOne(
-    { id: parseInt(userId, 10), active_session_id: sessionId },
+    { id: Number(userId), active_session_id: sessionId },
     { projection: { _id: 1 } }
   );
   return doc !== null;
 }
 
-// ---- login rate limiting ----
 
 function _loginKey(username, clientHost) {
   return (username || '').trim().toLowerCase() + '|' + (clientHost || 'unknown');
@@ -221,7 +215,6 @@ async function clearLoginFailures(username, clientHost) {
   await db.collection('login_attempts').deleteOne({ key: _loginKey(username, clientHost) });
 }
 
-// ---- challenge functions ----
 
 async function getAllChallenges() {
   return db.collection('challenges').find({}, { projection: { _id: 0 } }).toArray();
@@ -240,9 +233,9 @@ async function createChallenge(challengeId, name, description, difficulty, categ
         description,
         difficulty,
         category,
-        points: parseInt(points, 10),
+        points: Number(points),
         docker_image: dockerImage,
-        internal_port: parseInt(internalPort, 10),
+        internal_port: Number(internalPort),
       },
     },
     { upsert: true }
@@ -258,9 +251,9 @@ async function updateChallenge(challengeId, name, description, difficulty, categ
         description,
         difficulty,
         category,
-        points: parseInt(points, 10),
+        points: Number(points),
         docker_image: dockerImage,
-        internal_port: parseInt(internalPort, 10),
+        internal_port: Number(internalPort),
       },
     }
   );
@@ -270,11 +263,10 @@ async function deleteChallenge(challengeId) {
   await db.collection('challenges').deleteOne({ id: challengeId });
 }
 
-// ---- instance functions ----
 
 async function getRunningInstance(userId, challengeId) {
   return db.collection('instances').findOne(
-    { user_id: parseInt(userId, 10), challenge_id: challengeId, status: 'running' },
+    { user_id: Number(userId), challenge_id: challengeId, status: 'running' },
     { projection: { _id: 0 } }
   );
 }
@@ -284,7 +276,7 @@ async function getAllRunningInstances() {
     .find({ status: 'running' }, { projection: { _id: 0 } })
     .toArray();
 
-  const userIds = [...new Set(instances.map((i) => parseInt(i.user_id, 10)))];
+  const userIds = [...new Set(instances.map((i) => Number(i.user_id)))];
   const challengeIds = [...new Set(instances.map((i) => i.challenge_id))];
 
   const users = await db.collection('users')
@@ -300,7 +292,7 @@ async function getAllRunningInstances() {
   challenges.forEach((c) => (challengesById[c.id] = c));
 
   for (const inst of instances) {
-    const user = usersById[parseInt(inst.user_id, 10)];
+    const user = usersById[Number(inst.user_id)];
     const challenge = challengesById[inst.challenge_id];
     inst.username = user ? user.username : 'deleted_user';
     inst.challenge_name = challenge ? challenge.name : 'deleted_challenge';
@@ -320,9 +312,9 @@ async function createInstance(userId, challengeId, instanceNumber, containerIds,
   const now = new Date();
   const instance = {
     id: instId,
-    user_id: parseInt(userId, 10),
+    user_id: Number(userId),
     challenge_id: challengeId,
-    instance_number: parseInt(instanceNumber, 10),
+    instance_number: Number(instanceNumber),
     status: 'running',
     container_ids: containerIds,
     network_id: networkId,
@@ -337,14 +329,14 @@ async function createInstance(userId, challengeId, instanceNumber, containerIds,
 
 async function updateInstanceStatus(instanceId, status) {
   await db.collection('instances').updateOne(
-    { id: parseInt(instanceId, 10) },
+    { id: Number(instanceId) },
     { $set: { status } }
   );
 }
 
 async function getInstanceById(instanceId) {
   return db.collection('instances').findOne(
-    { id: parseInt(instanceId, 10) },
+    { id: Number(instanceId) },
     { projection: { _id: 0 } }
   );
 }
@@ -366,13 +358,12 @@ async function getOldRunningInstances(maxAgeSeconds) {
     .toArray();
 }
 
-// ---- submission functions ----
 
 async function saveSubmission(userId, challengeId, flagSubmitted, correct) {
   const subId = await getNextSequenceValue('submissions');
   await db.collection('submissions').insertOne({
     id: subId,
-    user_id: parseInt(userId, 10),
+    user_id: Number(userId),
     challenge_id: challengeId,
     flag_submitted: flagSubmitted,
     correct: correct ? 1 : 0,
@@ -385,18 +376,18 @@ async function saveAttackSubmission(userId, challengeId, flagSubmitted, correct,
   const subId = await getNextSequenceValue('submissions');
   await db.collection('submissions').insertOne({
     id: subId,
-    user_id: parseInt(userId, 10),
+    user_id: Number(userId),
     challenge_id: challengeId,
     flag_submitted: flagSubmitted,
     correct: correct ? 1 : 0,
-    target_user_id: targetUserId != null ? parseInt(targetUserId, 10) : null,
+    target_user_id: targetUserId != null ? Number(targetUserId) : null,
     submitted_at: new Date(),
   });
 }
 
 async function hasUserSolved(userId, challengeId) {
   const doc = await db.collection('submissions').findOne(
-    { user_id: parseInt(userId, 10), challenge_id: challengeId, correct: 1 },
+    { user_id: Number(userId), challenge_id: challengeId, correct: 1 },
     { projection: { _id: 1 } }
   );
   return doc !== null;
@@ -404,7 +395,7 @@ async function hasUserSolved(userId, challengeId) {
 
 async function hasUserUsedFlag(userId, flagSubmitted) {
   const doc = await db.collection('submissions').findOne(
-    { user_id: parseInt(userId, 10), flag_submitted: flagSubmitted, correct: 1 },
+    { user_id: Number(userId), flag_submitted: flagSubmitted, correct: 1 },
     { projection: { _id: 1 } }
   );
   return doc !== null;
@@ -426,7 +417,7 @@ async function getScoreboard() {
     .find({}, { projection: { _id: 0, id: 1, points: 1 } })
     .toArray();
   const challengePoints = {};
-  challengesCursor.forEach((c) => (challengePoints[c.id] = parseInt(c.points || 100, 10)));
+  challengesCursor.forEach((c) => (challengePoints[c.id] = Number(c.points || 100)));
 
   const rowsByUserId = {};
   for (const u of users) {
@@ -454,7 +445,7 @@ async function getScoreboard() {
       .toArray();
 
     for (const sub of correctSubs) {
-      const row = rowsByUserId[parseInt(sub.user_id, 10)];
+      const row = rowsByUserId[Number(sub.user_id)];
       const points = challengePoints[sub.challenge_id];
       if (!row || points == null) continue;
       row.score += points;
@@ -486,7 +477,7 @@ async function getScoreboardWithIps(showIps = false) {
   const users = await db.collection('users')
     .find({ role: { $ne: 'admin' } }, { projection: { _id: 0, id: 1, username: 1 } })
     .toArray();
-  const userIds = users.map((u) => parseInt(u.id, 10));
+  const userIds = users.map((u) => Number(u.id));
 
   const runningInstances = await db.collection('instances')
     .find(
@@ -498,15 +489,15 @@ async function getScoreboardWithIps(showIps = false) {
 
   const instanceByUserId = {};
   for (const inst of runningInstances) {
-    if (!instanceByUserId[parseInt(inst.user_id, 10)]) {
-      instanceByUserId[parseInt(inst.user_id, 10)] = inst;
+    if (!instanceByUserId[Number(inst.user_id)]) {
+      instanceByUserId[Number(inst.user_id)] = inst;
     }
   }
 
   const portalRows = [];
   for (const u of users) {
     const scoreRow = scoresByUserId[u.id] || {};
-    const inst = instanceByUserId[parseInt(u.id, 10)];
+    const inst = instanceByUserId[Number(u.id)];
     portalRows.push({
       user_id: u.id,
       username: u.username,
@@ -535,7 +526,7 @@ async function getRunningMachineIps(includeUsernames = false) {
 
   let usersById = {};
   if (includeUsernames) {
-    const userIds = [...new Set(instances.map((i) => parseInt(i.user_id, 10)))];
+    const userIds = [...new Set(instances.map((i) => Number(i.user_id)))];
     const users = await db.collection('users')
       .find({ id: { $in: userIds } }, { projection: { _id: 0, id: 1, username: 1 } })
       .toArray();
@@ -547,7 +538,7 @@ async function getRunningMachineIps(includeUsernames = false) {
     if (inst.target_ip) {
       const row = { target_ip: inst.target_ip, challenge_id: inst.challenge_id };
       if (includeUsernames) {
-        const user = usersById[parseInt(inst.user_id, 10)];
+        const user = usersById[Number(inst.user_id)];
         row.username = user ? user.username : 'deleted_user';
       }
       result.push(row);

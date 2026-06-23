@@ -6,12 +6,11 @@ const settings = require('../config');
 const database = require('../database');
 const { signToken, verifyTokenDetails, requireAuth } = require('../middleware/auth');
 
-// POST /api/login
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ detail: 'username and password required' });
+      return res.status(400).json({ error: 'username and password required' });
     }
 
     const clientHost = req.ip || 'unknown';
@@ -23,7 +22,7 @@ router.post('/login', async (req, res) => {
       return res
         .status(429)
         .set('Retry-After', String(retryAfter))
-        .json({ detail: `too many login attempts, try again in ${retryAfter} seconds` });
+        .json({ error: `too many login attempts, try again in ${retryAfter} seconds` });
     }
 
     const user = await database.getUserByUsername(username);
@@ -45,9 +44,9 @@ router.post('/login', async (req, res) => {
         return res
           .status(429)
           .set('Retry-After', String(delay))
-          .json({ detail: `too many login attempts, try again in ${delay} seconds` });
+          .json({ error: `too many login attempts, try again in ${delay} seconds` });
       }
-      return res.status(401).json({ detail: 'wrong username or password' });
+      return res.status(401).json({ error: 'wrong username or password' });
     }
 
     await database.clearLoginFailures(username, clientHost);
@@ -69,11 +68,10 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('login error:', err);
-    return res.status(500).json({ detail: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
-// POST /api/logout
 router.post('/logout', async (req, res) => {
   try {
     const token = req.cookies?.cyberrange_auth;
@@ -87,11 +85,10 @@ router.post('/logout', async (req, res) => {
     return res.json({ message: 'logged out' });
   } catch (err) {
     console.error('logout error:', err);
-    return res.status(500).json({ detail: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
-// GET /api/me
 router.get('/me', requireAuth, (req, res) => {
   return res.json({
     user_id: req.user.id,

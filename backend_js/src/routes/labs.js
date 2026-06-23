@@ -7,7 +7,7 @@ function unwrapOrError(result, res) {
   if (result && result.error) {
     const message = String(result.error);
     const status = message.toLowerCase().includes('not found') ? 404 : 400;
-    return res.status(status).json({ detail: message });
+    return res.status(status).json({ error: message });
   }
   return null;
 }
@@ -22,7 +22,7 @@ router.post('/lab/:challengeId/start', requireAuth, async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('start lab error:', err);
-    return res.status(500).json({ detail: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
@@ -36,7 +36,7 @@ router.post('/lab/:challengeId/stop', requireAuth, async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('stop lab error:', err);
-    return res.status(500).json({ detail: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
@@ -47,7 +47,7 @@ router.get('/lab/:challengeId/status', requireAuth, async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('lab status error:', err);
-    return res.status(500).json({ detail: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
