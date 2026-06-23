@@ -1,0 +1,25 @@
+{
+  "name": "simplified-cyberrange-backend",
+  "version": "1.0.0",
+  "description": "Express backend for simplified cyberrange",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "node test/run_tests.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dockerode": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "supertest": "^7.0.0"
+  }
+}
