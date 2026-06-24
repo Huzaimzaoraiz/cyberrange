@@ -5,7 +5,7 @@ const settings = require('./config');
 
 let docker = null;
 
-function get_docker_client() {
+function getDockerClient() {
   if (!docker) {
     docker = new Docker();
   }
@@ -14,7 +14,7 @@ function get_docker_client() {
 
 async function pingDocker() {
   try {
-    const client = get_docker_client();
+    const client = getDockerClient();
     await client.ping();
     return client;
   } catch (e) {
@@ -23,7 +23,7 @@ async function pingDocker() {
   }
 }
 
-async function getNetwork_for_Lab() {
+async function getLabNetwork() {
   const client = await pingDocker();
   const networkName = settings.dockerNetworkName;
   try {
@@ -56,7 +56,7 @@ function instanceNumberFromIp(ipAddress) {
 
 async function removeStaleContainer(name) {
   try {
-    const client = get_docker_client();
+    const client = getDockerClient();
     const container = client.getContainer(name);
     try {
       await container.stop({ t: 5 });
@@ -101,30 +101,28 @@ async function cleanupStaleResources() {
 }
 
 async function createLab(userId, challengeId) {
-  // Check for existing running lab
   const existing = await database.getRunningInstance(userId, challengeId);
   if (existing) {
     return { error: 'you already have a running lab for this challenge', instance: existing };
   }
 
-  // Fetch challenge configuration
+
   const challenge = await database.getChallenge(challengeId);
   if (!challenge) {
     return { error: 'challenge not found' };
   }
 
-  // Generate user/challenge specific flag
+
   const flag = flagEngine.generateFlag(userId, challengeId);
   const containerName = `lab_name${userId}_challenge_id${challengeId}`;
 
-  // Remove any duplicate containers
+
   await removeStaleContainer(containerName);
 
   try {
     const client = await pingDocker();
-    const network = await getNetwork_for_Lab();
+    const network = await getLabNetwork();
 
-    // Get network name (might be a Network object or have Name/id)
     let networkName = settings.dockerNetworkName;
     if (network.id) {
       try {
@@ -135,7 +133,7 @@ async function createLab(userId, challengeId) {
 
     const internalPort = challenge.internal_port || 80;
 
-    // Parse memory limit
+
     const memLimitBytes = parseMemoryLimit(settings.containerMemoryLimit);
 
     const container = await client.createContainer({
@@ -155,7 +153,7 @@ async function createLab(userId, challengeId) {
 
     await container.start();
 
-    // Inspect to get IP
+
     const containerInfo = await container.inspect();
     const containerIp = getContainerIp(containerInfo, networkName);
     if (!containerIp) {
@@ -166,7 +164,7 @@ async function createLab(userId, challengeId) {
     const instanceNum = instanceNumberFromIp(containerIp);
     console.log(`started container: ${containerName} on ${networkName} at ${targetIp}`);
 
-    // Save to database
+
     const instance = await database.createInstance(
       userId,
       challengeId,

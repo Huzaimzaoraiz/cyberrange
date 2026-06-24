@@ -38,17 +38,7 @@ async function initDb(mongoDb) {
   await db.collection('login_attempts').createIndex({ key: 1 }, { unique: true });
   await db.collection('login_attempts').createIndex({ updated_at: 1 });
 
-  // Seed platform state defaults
-  await db.collection('platform_state').updateOne(
-    { _id: 'score_positive_multiplier' },
-    { $setOnInsert: { value: '1.0' } },
-    { upsert: true }
-  );
-  await db.collection('platform_state').updateOne(
-    { _id: 'score_negative_multiplier' },
-    { $setOnInsert: { value: '1.0' } },
-    { upsert: true }
-  );
+
 
   // Initialize / synchronize admin user
   const bcrypt = require('bcrypt');
@@ -123,9 +113,7 @@ async function getRunningInstancesByUser(userId) {
 
 async function deleteUserAndRelatedData(userId) {
   userId = Number(userId);
-  await db.collection('submissions').deleteMany({
-    $or: [{ user_id: userId }, { target_user_id: userId }],
-  });
+  await db.collection('submissions').deleteMany({ user_id: userId });
   await db.collection('instances').deleteMany({ user_id: userId });
   await db.collection('users').deleteOne({ id: userId });
 }
@@ -367,23 +355,10 @@ async function saveSubmission(userId, challengeId, flagSubmitted, correct) {
     challenge_id: challengeId,
     flag_submitted: flagSubmitted,
     correct: correct ? 1 : 0,
-    target_user_id: null,
     submitted_at: new Date(),
   });
 }
 
-async function saveAttackSubmission(userId, challengeId, flagSubmitted, correct, targetUserId = null) {
-  const subId = await getNextSequenceValue('submissions');
-  await db.collection('submissions').insertOne({
-    id: subId,
-    user_id: Number(userId),
-    challenge_id: challengeId,
-    flag_submitted: flagSubmitted,
-    correct: correct ? 1 : 0,
-    target_user_id: targetUserId != null ? Number(targetUserId) : null,
-    submitted_at: new Date(),
-  });
-}
 
 async function hasUserSolved(userId, challengeId) {
   const doc = await db.collection('submissions').findOne(
@@ -425,11 +400,7 @@ async function getScoreboard() {
       id: u.id,
       username: u.username,
       score: 0,
-      attacker_points: 0,
-      net_score: 0,
-      total_points: 0,
       solves: 0,
-      successful_attacks: 0,
       last_solve_at: null,
     };
   }
@@ -449,18 +420,14 @@ async function getScoreboard() {
       const points = challengePoints[sub.challenge_id];
       if (!row || points == null) continue;
       row.score += points;
-      row.attacker_points += points;
-      row.net_score += points;
-      row.total_points += points;
       row.solves += 1;
-      row.successful_attacks += 1;
       if (sub.submitted_at) row.last_solve_at = sub.submitted_at;
     }
   }
 
   const scoreboard = Object.values(rowsByUserId);
   scoreboard.sort((a, b) => {
-    if (b.net_score !== a.net_score) return b.net_score - a.net_score;
+    if (b.score !== a.score) return b.score - a.score;
     const aTime = a.last_solve_at ? a.last_solve_at.getTime() : Infinity;
     const bTime = b.last_solve_at ? b.last_solve_at.getTime() : Infinity;
     if (aTime !== bTime) return aTime - bTime;
@@ -501,8 +468,7 @@ async function getScoreboardWithIps(showIps = false) {
     portalRows.push({
       user_id: u.id,
       username: u.username,
-      score: scoreRow.net_score || 0,
-      attacker_points: scoreRow.attacker_points || 0,
+      score: scoreRow.score || 0,
       challenge_id: inst ? inst.challenge_id : null,
       target_ip: inst && showIps ? inst.target_ip : null,
     });
@@ -511,13 +477,7 @@ async function getScoreboardWithIps(showIps = false) {
   return portalRows;
 }
 
-async function getScoringConfig() {
-  return { positive_multiplier: 1.0, negative_multiplier: 1.0 };
-}
 
-async function setScoringConfig(positiveMultiplier, negativeMultiplier) {
-  // no-op in simplified version
-}
 
 async function getRunningMachineIps(includeUsernames = false) {
   const instances = await db.collection('instances')
@@ -576,13 +536,10 @@ module.exports = {
   getInstanceById,
   getOldRunningInstances,
   saveSubmission,
-  saveAttackSubmission,
   hasUserSolved,
   hasUserUsedFlag,
   getAllUserIds,
   getScoreboard,
   getScoreboardWithIps,
-  getScoringConfig,
-  setScoringConfig,
   getRunningMachineIps,
 };
