@@ -369,11 +369,11 @@ async function hasUserSolved(userId, challengeId) {
 }
 
 async function hasUserUsedFlag(userId, flagSubmitted) {
-  const doc = await db.collection('submissions').findOne(
+  const count = await db.collection('submissions').countDocuments(
     { user_id: Number(userId), flag_submitted: flagSubmitted, correct: 1 },
-    { projection: { _id: 1 } }
+    { limit: 1 }
   );
-  return doc !== null;
+  return count > 0;
 }
 
 async function getAllUserIds() {
