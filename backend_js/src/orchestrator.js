@@ -101,7 +101,9 @@ async function cleanupStaleResources() {
 }
 
 async function createLab(userId, challengeId) {
+  console.log(`request recived by orchestrator for user ${userId} and challenge ${challengeId}`);
   const existing = await database.getRunningInstance(userId, challengeId);
+  console.log(`get by db ${existing}`);
   if (existing) {
     return { error: 'you already have a running lab for this challenge', instance: existing };
   }
