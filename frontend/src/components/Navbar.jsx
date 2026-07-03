@@ -13,7 +13,7 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <Link to="/" className="logo">
-        HackThrough
+        Cyberrange
       </Link>
       <div className="nav-links">
         {user ? (
