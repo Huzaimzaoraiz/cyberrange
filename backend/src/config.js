@@ -42,7 +42,7 @@ const settings = {
 
   // Docker lab network
   dockerNetworkName: process.env.CR_DOCKER_NETWORK_NAME || 'cyberrange_labs',
-  labSubnet: process.env.CR_LAB_SUBNET || '10.0.0.0/16',
+  labSubnet: process.env.CR_LAB_SUBNET || '127.30.0.0/16',
 
   corsOrigins: [
     'http://localhost:5173',
