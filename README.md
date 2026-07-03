@@ -59,8 +59,6 @@ http://YOUR_NETBIRD_WEB_IP:8080
 
 ## Security Notes
 
-- Do not commit `.env` or real setup keys.
-- Do not expose MongoDB, backend, or frontend directly to host ports.
 - Keep backend off `cyberrange_labs`.
 - Keep challenge containers without host mounts or privileged mode.
 - Treat the backend as trusted because it can ask Docker to create and remove lab containers through the proxy.
