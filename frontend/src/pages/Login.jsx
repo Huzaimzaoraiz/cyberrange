@@ -33,8 +33,9 @@ export default function Login() {
       {error && <div className="flash flash-error">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>Username</label>
+          <label>Email Address</label>
           <input
+            type="email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required

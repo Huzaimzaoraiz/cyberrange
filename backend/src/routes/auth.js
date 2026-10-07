@@ -131,12 +131,12 @@ router.post('/verify-register', async (req, res) => {
       return res.status(400).json({ error: 'invalid or expired OTP' });
     }
     
-    const username = email.split('@')[0].substring(0, 32);
+    const username = email.trim();
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = await database.createUser(username, passwordHash, 'user');
     
     if (userId == null) {
-      return res.status(400).json({ error: 'username already taken (please use another email)' });
+      return res.status(400).json({ error: 'email already registered' });
     }
     
     await database.deleteRegistrationOtp(email);
