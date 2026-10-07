@@ -37,6 +37,8 @@ async function initDb(mongoDb) {
   await db.collection('submissions').createIndex({ correct: 1, user_id: 1, submitted_at: 1 });
   await db.collection('login_attempts').createIndex({ key: 1 }, { unique: true });
   await db.collection('login_attempts').createIndex({ updated_at: 1 });
+  await db.collection('registration_otps').createIndex({ email: 1 }, { unique: true });
+  await db.collection('registration_otps').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
 
 
 
@@ -542,4 +544,21 @@ module.exports = {
   getScoreboard,
   getScoreboardWithIps,
   getRunningMachineIps,
+  
+  saveRegistrationOtp: async function (email, otp) {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    await db.collection('registration_otps').updateOne(
+      { email },
+      { $set: { otp, expires_at: expiresAt } },
+      { upsert: true }
+    );
+  },
+
+  getRegistrationOtp: async function (email) {
+    return db.collection('registration_otps').findOne({ email });
+  },
+
+  deleteRegistrationOtp: async function (email) {
+    await db.collection('registration_otps').deleteOne({ email });
+  }
 };

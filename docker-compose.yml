@@ -16,6 +16,11 @@ services:
       CR_FLAG_SECRET: ${CR_FLAG_SECRET:?set CR_FLAG_SECRET in .env}
       ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       # OverlayVPN integration (optional — leave blank to disable VPN provisioning)
       VPN_V2_URL: ${VPN_V2_URL:-}
       VPN_V2_SERVICE_EMAIL: ${VPN_V2_SERVICE_EMAIL:-}

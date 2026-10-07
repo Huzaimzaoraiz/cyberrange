@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 const settings = require('../config');
 const database = require('../database');
+const mailer = require('../mailer');
 const { signToken, verifyTokenDetails, requireAuth } = require('../middleware/auth');
 
 router.post('/login', async (req, res) => {
@@ -100,5 +101,54 @@ router.get('/me', requireAuth, (req, res) => {
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+router.post('/register', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email is required' });
+    
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    await database.saveRegistrationOtp(email, otp);
+    await mailer.sendRegistrationOtp(email, otp);
+    
+    return res.json({ message: 'OTP sent to ' + email });
+  } catch (err) {
+    console.error('Registration request error:', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+router.post('/verify-register', async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    if (!email || !otp || !password) return res.status(400).json({ error: 'email, otp, and password required' });
+    if (password.length < 8) return res.status(400).json({ error: 'password must be at least 8 characters' });
+    
+    const record = await database.getRegistrationOtp(email);
+    if (!record || record.otp !== otp || record.expires_at < new Date()) {
+      return res.status(400).json({ error: 'invalid or expired OTP' });
+    }
+    
+    const username = email.split('@')[0].substring(0, 32);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const userId = await database.createUser(username, passwordHash, 'user');
+    
+    if (userId == null) {
+      return res.status(400).json({ error: 'username already taken (please use another email)' });
+    }
+    
+    await database.deleteRegistrationOtp(email);
+    
+    return res.json({
+      message: 'user created successfully',
+      user: { id: userId, username, role: 'user' },
+    });
+  } catch (err) {
+    console.error('Verify registration error:', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
 
 module.exports = router;

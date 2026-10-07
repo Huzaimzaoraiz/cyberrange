@@ -64,6 +64,14 @@ const settings = {
     vpnV2ServicePass: process.env.VPN_V2_SERVICE_PASS || '',
     vpnV2NetworkId: process.env.VPN_V2_NETWORK_ID || '',
   },
+  // SMTP (for OTP emails)
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || 'noreply@overlayvpn.me',
+  },
 };
 
 module.exports = settings;

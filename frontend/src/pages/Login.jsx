@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api";
 
@@ -55,7 +55,7 @@ export default function Login() {
         </button>
       </form>
       <p style={{ textAlign: "center", marginTop: "1rem", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-        Accounts are created by admins only.
+        Don't have an account? <Link to="/register" style={{ color: "var(--brand-color)" }}>Register here</Link>.
       </p>
     </div>
   );
