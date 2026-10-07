@@ -37,7 +37,7 @@ export default function Register() {
     try {
       await api.post("/verify-register", { email, otp, password });
       setMsg({ type: "success", text: "Account created! You can now log in." });
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       setMsg({ type: "error", text: err.error || "Failed to verify OTP" });
     } finally {
