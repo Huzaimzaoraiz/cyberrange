@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
+import { generateWireguardKeypair, buildClientWireguardConfig } from "../utils/wireguard";
 
 const SCOREBOARD_REFRESH_EVENT = "scoreboard:refresh";
 
@@ -22,6 +23,7 @@ export default function Lab() {
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [vpnBusy, setVpnBusy] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -92,6 +94,49 @@ export default function Lab() {
     }
   }
 
+  async function handleVpnConnect() {
+    setVpnBusy(true);
+    setMsg({ type: "", text: "" });
+    try {
+      // Step 1: Generate keys locally — private key NEVER leaves the browser
+      const { privateKeyBase64, publicKeyBase64 } = await generateWireguardKeypair();
+
+      // Step 2: Register public key with backend → OverlayVPN
+      const data = await api.post("/vpn/provision", { public_key: publicKeyBase64 });
+
+      // Step 3: Build the WireGuard config locally
+      const allowedIps = data.allowedIps || (data.labSubnet ? [data.labSubnet] : (import.meta.env.VITE_LAB_SUBNET ? [import.meta.env.VITE_LAB_SUBNET] : ["172.30.0.0/16"]));
+      const conf = buildClientWireguardConfig(
+        privateKeyBase64,
+        data.vpnIp,
+        data.gatewayPublicKey,
+        data.gatewayEndpoint,
+        allowedIps
+      );
+
+      // Step 4: Trigger browser download
+      const blob = new Blob([conf], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "cyberrange-lab.conf";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setMsg({ type: "success", text: `VPN config downloaded! Import cyberrange-lab.conf into WireGuard (IP: ${data.vpnIp}).` });
+    } catch (err) {
+      console.error("VPN provisioning error:", err);
+      const errorMsg =
+        err.error ||
+        err.detail ||
+        err.message ||
+        (typeof err === "string" ? err : "VPN provisioning failed. Please try again.");
+      setMsg({ type: "error", text: errorMsg });
+    } finally {
+      setVpnBusy(false);
+    }
+  }
+
   async function submitFlag(e) {
     e.preventDefault();
     if (!flag.trim()) return;
@@ -144,6 +189,16 @@ export default function Lab() {
           <button className="btn btn-danger" onClick={stopLab} disabled={busy || !running}>
             {busy && running ? "Stopping..." : "Stop Lab"}
           </button>
+          {running && (
+            <button
+              className="btn btn-secondary"
+              onClick={handleVpnConnect}
+              disabled={vpnBusy}
+              title="Generate a WireGuard config to access the lab network directly"
+            >
+              {vpnBusy ? "Provisioning VPN..." : "⬇ Connect to VPN"}
+            </button>
+          )}
         </div>
 
         {running && status?.target_ip && (

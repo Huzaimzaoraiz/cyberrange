@@ -1,57 +1,31 @@
 services:
-  nginx:
-    image: nginx:1.27-alpine
-    depends_on:
-      - frontend
-      - backend
-    ports:
-      - "${NGINX_BIND_IP:-127.0.0.1}:${NGINX_BIND_PORT:-8080}:80"
-    volumes:
-      - ./nginx/cyberrange.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - app_net
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-    expose:
-      - "80"
-    networks:
-      - app_net
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
-    expose:
-      - "8000"
+    ports:
+      - "${CR_BIND_IP:-127.0.0.1}:${CR_BIND_PORT:-5000}:5000"
     environment:
+      PORT: 5000
       DOCKER_HOST: tcp://docker-socket-proxy:2375
-      CR_MONGO_URI: mongodb://mongodb:27017
-      CR_MONGO_DB: cyberrange
-      CR_DOCKER_NETWORK_NAME: cyberrange_labs
-      CR_LAB_SUBNET: 172.30.0.0/16
+      CR_MONGO_URI: ${CR_MONGO_URI:-mongodb://mongodb:27017}
+      CR_MONGO_DB: ${CR_MONGO_DB:-cyberrange}
+      CR_CONTAINER_MEMORY_LIMIT: ${CR_CONTAINER_MEMORY_LIMIT:-128m}
+      CR_DOCKER_NETWORK_NAME: ${CR_DOCKER_NETWORK_NAME:-cyberrange_labs}
+      CR_LAB_SUBNET: ${CR_LAB_SUBNET:-172.30.0.0/16}
       CR_SECRET_KEY: ${CR_SECRET_KEY:?set CR_SECRET_KEY in .env}
       CR_FLAG_SECRET: ${CR_FLAG_SECRET:?set CR_FLAG_SECRET in .env}
       ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      # OverlayVPN integration (optional — leave blank to disable VPN provisioning)
+      VPN_V2_URL: ${VPN_V2_URL:-}
+      VPN_V2_SERVICE_EMAIL: ${VPN_V2_SERVICE_EMAIL:-}
+      VPN_V2_SERVICE_PASS: ${VPN_V2_SERVICE_PASS:-}
+      VPN_V2_NETWORK_ID: ${VPN_V2_NETWORK_ID:-}
     depends_on:
-      - mongodb
       - docker-socket-proxy
     networks:
       - app_net
       - docker_control
-    restart: unless-stopped
-
-  mongodb:
-    image: mongo:7
-    expose:
-      - "27017"
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - app_net
     restart: unless-stopped
 
   docker-socket-proxy:
@@ -83,41 +57,27 @@ services:
       - docker_control
     restart: unless-stopped
 
-  netbird-client:
-    image: netbirdio/netbird:latest
-    container_name: cyberrange-netbird-web
-    hostname: cyberrange-web
+  vpn-lab-router:
+    build:
+      context: ./vpn-router
+    container_name: cyberrange-vpn-lab-router
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
-      - SYS_RESOURCE
-    devices:
-      - /dev/net/tun
-    network_mode: host
-    environment:
-      NB_SETUP_KEY: ${NB_WEB_SETUP_KEY:?set NB_WEB_SETUP_KEY in .env}
-    volumes:
-      - netbird_web:/var/lib/netbird
-    restart: unless-stopped
-
-  netbird-lab-router:
-    image: netbirdio/netbird:latest
-    container_name: cyberrange-netbird-lab-router
-    hostname: cyberrange-lab-router
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
-      - SYS_RESOURCE
     devices:
       - /dev/net/tun
     sysctls:
       net.ipv4.ip_forward: "1"
     environment:
-      NB_SETUP_KEY: ${NB_LAB_ROUTER_SETUP_KEY:?set NB_LAB_ROUTER_SETUP_KEY in .env}
+      VPN_V2_URL: ${VPN_V2_URL:-http://172.17.0.1:8000}
+      VPN_V2_SERVICE_EMAIL: ${VPN_V2_SERVICE_EMAIL:-}
+      VPN_V2_SERVICE_PASS: ${VPN_V2_SERVICE_PASS:-}
+      VPN_V2_NETWORK_ID: ${VPN_V2_NETWORK_ID:-}
+      LAB_SUBNET: ${CR_LAB_SUBNET:-172.30.0.0/16}
     volumes:
-      - netbird_lab_router:/var/lib/netbird
+      - vpn_router_data:/etc/wireguard
     networks:
-      - lab_router_net
+      - app_net
       - cyberrange_labs
     restart: unless-stopped
 
@@ -129,18 +89,9 @@ networks:
     driver: bridge
     internal: true
 
-  lab_router_net:
-    driver: bridge
-
   cyberrange_labs:
+    external: true
     name: cyberrange_labs
-    driver: bridge
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.30.0.0/16
 
 volumes:
-  mongo_data:
-  netbird_web:
-  netbird_lab_router:
+  vpn_router_data:
