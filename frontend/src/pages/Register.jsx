@@ -18,7 +18,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await api.post("/auth/register", { email });
+      await api.post("/register", { email });
       setMsg({ type: "success", text: "OTP sent to your email!" });
       setStep(2);
     } catch (err) {
@@ -35,7 +35,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await api.post("/auth/verify-register", { email, otp, password });
+      await api.post("/verify-register", { email, otp, password });
       setMsg({ type: "success", text: "Account created! You can now log in." });
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
