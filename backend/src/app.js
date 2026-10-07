@@ -21,11 +21,13 @@ const authRouter = require('./routes/auth');
 const challengesRouter = require('./routes/challenges');
 const labsRouter = require('./routes/labs');
 const adminRouter = require('./routes/admin');
+const vpnRouter = require('./routes/vpn');
 
 app.use('/api', authRouter);
 app.use('/api', challengesRouter);
 app.use('/api', labsRouter);
 app.use('/api', adminRouter);
+app.use('/api', vpnRouter);
 
 const PORT = process.env.PORT || 8000;
 
@@ -33,11 +35,11 @@ async function startServer() {
   try {
 
     const mongoDb = await connect();
-    
+
 
     database.setDb(mongoDb);
     await database.initDb(mongoDb);
-    
+
 
     await orchestrator.cleanupStaleResources();
 

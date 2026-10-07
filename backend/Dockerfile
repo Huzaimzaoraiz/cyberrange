@@ -10,7 +10,7 @@ RUN npm ci --only=production
 COPY . .
 
 # Expose port
-EXPOSE 8000
+EXPOSE 5000
 
 # Start the Express server
 CMD ["npm", "start"]
