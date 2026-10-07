@@ -102,50 +102,7 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/admin/users
-router.post('/admin/users', requireAdmin, async (req, res) => {
-  try {
-    const { password } = req.body;
-    const username = req.body.username?.trim();
-    const role = req.body.role?.trim().toLowerCase() || 'user';
-    if (!username || !password) return res.status(400).json({ error: 'username and password required' });
-    if (username.length < 3) {
-      return res.status(400).json({ error: 'username must be at least 3 characters' });
-    }
-    if (username.length > 32) {
-      return res.status(400).json({ error: 'username must be at most 32 characters' });
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      return res.status(400).json({ error: "username can only use letters, numbers, '_' and '-'" });
-    }
 
-    // 3. Validate Password & Role
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'password must be at least 8 characters' });
-    }
-    if (role !== 'user' && role !== 'admin') {
-      return res.status(400).json({ error: "role must be either 'user' or 'admin'" });
-    }
-
-    // 4. Secure the password and save the user
-    const passwordHash = await bcrypt.hash(password, 10);
-    const userId = await database.createUser(username, passwordHash, role);
-
-    if (userId == null) {
-      return res.status(400).json({ error: 'username already taken' });
-    }
-
-    // 5. Success!
-    return res.json({
-      message: 'user created',
-      user: { id: userId, username, role },
-    });
-
-  } catch (err) {
-    console.error('admin create user error:', err);
-    return res.status(500).json({ error: 'internal server error' });
-  }
-});
 
 // DELETE /api/admin/users/:userId
 router.delete('/admin/users/:userId', requireAdmin, async (req, res) => {
