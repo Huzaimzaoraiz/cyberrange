@@ -1,45 +1,45 @@
-#  CyberRange
+# CyberRange
 
 > A modern, Docker-native platform for hosting isolated cybersecurity labs, CTF competitions, and hands-on training environments.
 
-   <p align="left">
+<p align="left">
   <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black">
   <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img src="https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white">
   <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
-  <img src="https://img.shields.io/badge/NetBird-000000?style=flat-square">
+  <img src="https://img.shields.io/badge/WireGuard-881798?style=flat-square&logo=wireguard&logoColor=white">
 </p>
 
-CyberRange is built with **React**, **Node.js**, **MongoDB**, and **Docker** to dynamically provision challenge environments for each participant. Challenge containers are deployed on isolated Docker networks and securely managed through the Docker API, while **NetBird VPN** provides private access to lab environments without exposing them to the public Internet.
+CyberRange is built with **React**, **Node.js**, **MongoDB**, and **Docker** to dynamically provision challenge environments for each participant. Challenge containers are deployed on isolated Docker networks and securely managed through the Docker API, while **OverlayVPN (WireGuard)** provides private access to lab environments without exposing them to the public Internet.
 
 ## Features
 
 - **Docker-based Labs** — Isolated challenge environments provisioned on demand.
 - **React Frontend** — Modern and responsive user interface.
+- **OTP Email Registration** — Secure, self-service user registration via Brevo SMTP.
 - **Node.js Backend** — REST APIs for authentication and challenge orchestration.
 - **MongoDB Storage** — Persistent storage for users, challenges, and scores.
 - **Docker Socket Proxy** — Secure access to the Docker Engine.
-- **NetBird VPN** — Private access to lab environments over VPN.
+- **OverlayVPN Routing** — Private access to lab environments over WireGuard.
 - **Dynamic Provisioning** — Automatic deployment and cleanup of challenge containers.
 - **Multi-user Isolation** — Dedicated lab instances for every participant.
-- **Scalable Architecture** — Designed for CTFs, workshops, and cybersecurity training.
+
 ## Services
 
-- `nginx`: single web entrypoint for the VPN users
-- `frontend`: built React app served by Nginx
-- `backend`: FastAPI API server
-- `mongodb`: private database container
-- `docker-socket-proxy`: limited Docker API proxy for the backend
-- `netbird-client`: VPN node for web access
-- `netbird-lab-router`: VPN route into the challenge subnet
+- `nginx`: Web entrypoint serving the React frontend and proxying `/api/` to the backend.
+- `backend`: Node.js API server for orchestration, registration, and logic.
+- `mongodb`: Private database container.
+- `docker-socket-proxy`: Limited Docker API proxy for the backend.
+- `vpn-lab-router`: Custom WireGuard router connecting the lab subnet to the OverlayVPN controller.
 
 The backend does not join the challenge network. It talks to Docker only through `docker-socket-proxy`.
 
 ## System Architecture
 
-The CyberRange platform uses a containerized microservices architecture that separates the web application, control plane, and isolated challenge infrastructure. **NGINX** serves as a reverse proxy for the frontend and backend, while the backend uses **MongoDB** for persistent storage and communicates with the Docker Engine through a **Docker Socket Proxy** to securely provision and manage challenge environments.
+The CyberRange platform uses a containerized microservices architecture. **NGINX** serves as a reverse proxy for the frontend and backend, while the backend uses **MongoDB** for persistent storage and communicates with the Docker Engine through a **Docker Socket Proxy** to securely provision challenge environments.
 
-Each challenge runs in one or more Docker containers on the isolated `cyberrange_labs` network. Participants connect through **NetBird VPN**, where the **NetBird Lab Router** advertises and routes traffic to the lab subnet, providing secure access to assigned challenge containers without exposing the lab network to the public Internet.
+Each challenge runs in one or more Docker containers on the isolated `cyberrange_labs` network (e.g., `172.30.0.0/16`). The **VPN Lab Router** connects directly to this Docker network and bridges traffic via a WireGuard tunnel to the external OverlayVPN controller.
+
 ```text
                     ┌─────────────────────┐
                     │     Participants    │
@@ -57,7 +57,7 @@ Each challenge runs in one or more Docker containers on the isolated `cyberrange
                            ▼      ▼
                  ┌────────────┐ ┌────────────┐
                  │ Frontend   │ │ Backend    │
-                 │ React/Vue  │ │ API Server │
+                 │ React UI   │ │ API Server │
                  └────────────┘ └─────┬──────┘
                                       │
                                       │
@@ -91,14 +91,14 @@ Each challenge runs in one or more Docker containers on the isolated `cyberrange
  └─────────────┘    └─────────────┘      └─────────────┘
                             ▲
                             │
-                            │ Routed VPN Access
+                            │ Routed WireGuard Access
                             │
                  ┌──────────┴───────────┐
-                 │ NetBird Lab Router   │
-                 │ VPN Gateway          │
+                 │ VPN Lab Router       │
+                 │ OverlayVPN Bridge    │
                  └──────────┬───────────┘
                             │
-                     NetBird Overlay
+                     OverlayVPN (API)
                             │
                             ▼
                     ┌─────────────────┐
@@ -109,34 +109,39 @@ Each challenge runs in one or more Docker containers on the isolated `cyberrange
 
 ## First Run
 
+Create the Docker network manually to ensure the subnet matches your VPN routing rules:
+
+```bash
+sudo docker network create --subnet=172.30.0.0/16 cyberrange_labs
+```
+
 Create local environment values:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set strong values for:
+Edit `.env` and set values for your deployment:
 
 ```env
-NB_WEB_SETUP_KEY=
-NB_LAB_ROUTER_SETUP_KEY=
-CR_SECRET_KEY=
-CR_FLAG_SECRET=
-ADMIN_PASSWORD=
+# Security
+CR_SECRET_KEY=super-secret-jwt-key
+CR_FLAG_SECRET=my-super-secret-flag-key
+ADMIN_PASSWORD=strong-admin-pass
+
+# Registration (Brevo SMTP)
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=your_brevo_email
+SMTP_PASS=your_brevo_password
+SMTP_FROM=noreply@yourdomain.com
+
+# OverlayVPN Integration
+VPN_V2_URL=https://overlayvpn.me
+VPN_V2_SERVICE_EMAIL=vpn-service-account
+VPN_V2_SERVICE_PASS=vpn-service-password
+VPN_V2_NETWORK_ID=your-vpn-network-id
 ```
-
-Start the NetBird peers first:
-
-```bash
-docker compose up -d netbird-client netbird-lab-router
-```
-
-In the NetBird dashboard:
-
-1. Find the IP for `cyberrange-web`.
-2. Set `NGINX_BIND_IP` in `.env` to that IP.
-3. Add a network route for `172.30.0.0/16` through `cyberrange-lab-router`.
-4. Allow that route only for the users/groups who should access challenges.
 
 Start the full stack:
 
@@ -144,13 +149,9 @@ Start the full stack:
 docker compose up -d --build
 ```
 
-Open:
+Access the platform at the domain configured in your NGINX setup.
 
-```text
-http://YOUR_NETBIRD_WEB_IP:80
-```
-
-##  Flag Injection into Challenge Containers
+## Flag Injection into Challenge Containers
 
 To ensure every participant receives a unique flag, the backend orchestrator injects a **per-user flag** into each challenge container during deployment. When a challenge container is created, the backend sets the `FLAG` environment variable using the Docker API.
 
@@ -166,8 +167,7 @@ Internally, the orchestrator includes:
 Env: ['FLAG=<user_specific_flag>']
 ```
 
-in the Docker container creation request (see `orchestrator.js`).
-
+in the Docker container creation request.
 
 ## Security Notes
 
